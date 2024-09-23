@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUESTION-ANSWERING SEARCH TOOL</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message {
+            max-width: 70%;
+        }
+        .user-message {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 18px 18px 0 18px;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            border-radius: 18px 18px 18px 0;
+        }
+        .typing-indicator span {
+            width: 10px;
+            height: 10px;
+            background-color: #3498db;
+            display: inline-block;
+            border-radius: 50%;
+            animation: bounce 1.3s linear infinite;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -1.1s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: -0.9s;
+        }
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-8">QUESTION-ANSWERING SEARCH TOOL</h1>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div id="chat-container" class="chat-container overflow-y-auto mb-4"></div>
+            <div id="typing-indicator" class="typing-indicator hidden mb-4">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <form id="chat-form" class="flex">
+                <input type="text" id="user-input" class="flex-grow mr-2 p-2 border rounded" placeholder="Type your message...">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'p-3', 'mb-2', isUser ? 'user-message' : 'bot-message', isUser ? 'ml-auto' : 'mr-auto');
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.classList.remove('hidden');
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.classList.add('hidden');
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            addMessage(userMessage, true);
+            userInput.value = '';
+
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: userMessage }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                hideTypingIndicator();
+                addMessage(data.answer);
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('Sorry, I encountered an error. Please try again.');
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
